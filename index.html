@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset=""UTF-8>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans h-screen flex">
+
+    <div class="w-64 bg-white shadow-lg flex flex-col">
+        <div class="p-6 bg-blue-600 text-white">
+            <h1 class="text-xl font-bold">Dashboard</h1>
+            <p class="text-sm opacity-80">Market Intelligence</p>
+        </div>
+        <div class="p-4 flex-1 overflow-y-auto">
+            <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Watchlist</h2>
+            <ul id="company-list" class="space-y-2">
+                <li class="text-gray-500 italic text-sm">Loading companies...</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="flex-1 flex flex-col p-8 overflow-y-auto">
+        
+        <header class="mb-8 flex justify-between items-end">
+            <div>
+                <h2 id="selected-symbol" class="text-3xl font-bold text-gray-800">Select a Stock</h2>
+                <p class="text-gray-500">Last 30 Days Performance</p>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-sm text-gray-500 mb-1">52-Week High</p>
+                <p id="stat-high" class="text-2xl font-semibold text-gray-800">--</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-sm text-gray-500 mb-1">52-Week Low</p>
+                <p id="stat-low" class="text-2xl font-semibold text-gray-800">--</p>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <p class="text-sm text-gray-500 mb-1">Average Close</p>
+                <p id="stat-avg" class="text-2xl font-semibold text-gray-800">--</p>
+            </div>
+            <div class="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-xl shadow-sm border border-blue-100 relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg uppercase tracking-wider">AI Powered</div>
+                <p class="text-sm text-blue-600 font-medium mb-1">Next Day Forecast</p>
+                <p id="stat-ai" class="text-xl font-bold text-gray-800">Loading...</p>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex-1 min-h-[400px]">
+            <canvas id="stockChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE="http://127.0.0.1:8000";
+        let currentChart=null;
+
+        async function fetchCompanies() {
+            try {
+                const response = await fetch(`${API_BASE}/companies`);
+                const data = await response.json();
+                const listEl = document.getElementById('company-list');
+                listEl.innerHTML = '';
+
+                data.companies.forEach(symbol => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <button onclick="loadStockData('${symbol}')" 
+                                class="w-full text-left px-4 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors font-medium">
+                            ${symbol.replace('.NS', '')}
+                        </button>
+                    `;
+                    listEl.appendChild(li);
+                });
+
+                if (data.companies.length > 0) {
+                    loadStockData(data.companies[0]);
+                }
+            } catch (error) {
+                console.error("Error fetching companies:", error);
+                document.getElementById('company-list').innerHTML = '<li class="text-red-500 text-sm">Failed to connect to API. Is the server running?</li>';
+            }
+        }
+
+        async function loadStockData(symbol) {
+            document.getElementById('selected-symbol').innerText = symbol.replace('.NS', '');
+            document.getElementById('stat-ai').innerText = "Analyzing...";
+            document.getElementById('stat-ai').className = "text-xl font-bold text-gray-500 animate-pulse";
+            
+            try {
+                const [dataRes, summaryRes, predRes] = await Promise.all([
+                    fetch(`${API_BASE}/data/${symbol}`),
+                    fetch(`${API_BASE}/summary/${symbol}`),
+                    fetch(`${API_BASE}/predict/${symbol}`)
+                ]);
+                
+                const stockData = await dataRes.json();
+                const summaryData = await summaryRes.json();
+                const predData = await predRes.json();
+
+                updateSummaryCards(summaryData, predData);
+                renderChart(stockData.data);
+            } catch (error) {
+                console.error("Error fetching stock details:", error);
+                document.getElementById('stat-ai').innerText = "Unavailable";
+            }
+        }
+
+        function updateSummaryCards(summary, aiPrediction) {
+            document.getElementById('stat-high').innerText = `₹${summary['52_week_high']}`;
+            document.getElementById('stat-low').innerText = `₹${summary['52_week_low']}`;
+            document.getElementById('stat-avg').innerText = `₹${summary['average_close']}`;
+            const aiBadge = document.getElementById('stat-ai');
+            if (aiPrediction && aiPrediction.prediction) {
+                aiBadge.innerText = aiPrediction.prediction;
+                aiBadge.className = `text-xl font-bold ${aiPrediction.color === 'green' ? 'text-green-600' : 'text-red-600'}`;
+            } else {
+                aiBadge.innerText = "Data Unavailable";
+                aiBadge.className = "text-xl font-bold text-orange-500";
+                console.warn("Backend Error Details:", aiPrediction.detail);
+            }
+        }
+
+
+        function renderChart(historicalData) {
+            const chronologicalData = historicalData.reverse(); 
+            
+            const labels = chronologicalData.map(row => row.date);
+            const prices = chronologicalData.map(row => row.close);
+
+            const ctx = document.getElementById('stockChart').getContext('2d');
+            
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            currentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Closing Price (₹)',
+                        data: prices,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#2563eb'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            ticks: { callback: function(value) { return '₹' + value; } }
+                        }
+                    }
+                }
+            });
+        }
+
+        fetchCompanies();
+    </script>
+</body>
+</html>

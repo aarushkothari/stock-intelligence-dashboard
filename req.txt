@@ -1,0 +1,7 @@
+yfinance
+pandas
+pandas_td
+xgboost
+fastapi
+uvicorn
+scikit-learn
