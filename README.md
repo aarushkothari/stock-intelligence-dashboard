@@ -36,17 +36,18 @@ Exposes the following endpoints with auto-generated Swagger UI documentation (av
 ```bash
 git clone [https://github.com/aarushkothari/stock-intelligence-dashboard.git](https://github.com/aarushkothari/stock-intelligence-dashboard.git)
 cd stock-intelligence-dashboard
-
+```
 **2. Create a virtual environment and install dependencies**
-
+```bash
 python -m venv venv
 .\venv\Scripts\activate
 pip install -r requirements.txt
-
+```
 **3. Run the Backend Server**
-
+```bash
 uvicorn app:app --reload
-
+```
 **4. View the Dashboard**
-
+```
 Open the index.html file in any modern web browser to interact with the visualizations.
+```
