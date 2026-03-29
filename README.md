@@ -32,7 +32,16 @@ Exposes the following endpoints with auto-generated Swagger UI documentation (av
 * **The Features:** It uses the closing price, intraday momentum (`daily_return`), short-term trend (`ma_7`), and volatility (`atr_14`) to learn historical patterns. 
 * **The Target:** It predicts a binary outcome: `1` (Bullish - tomorrow's close will be higher) or `0` (Bearish - tomorrow's close will be lower).
 
-## 🛠️ Setup Instructions
+---
+
+## 🖥️ The Interactive Dashboard
+The frontend is a single-page application designed for clarity and speed, built with HTML5, Vanilla JavaScript, and Tailwind CSS.
+* **Asynchronous Loading:** When a user clicks a stock in the sidebar, the JavaScript makes concurrent `fetch()` calls to the data, summary, and prediction APIs.
+* **Visualization:** It utilizes **Chart.js** to render a clean, interactive line graph of the 30-day closing prices, allowing users to hover over data points for exact daily valuations.
+
+---
+
+## 🛠️ Setup & Run Instructions
 
 **1. Clone the repository**
 ```bash
