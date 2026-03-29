@@ -68,4 +68,5 @@ Open the index.html file in any modern web browser to interact with the visualiz
 ```
 
 **5. View the API Documentation**
+
 With the server running, navigate to http://127.0.0.1:8000/docs in your browser to interact with the auto-generated Swagger UI and test the endpoints directly.
