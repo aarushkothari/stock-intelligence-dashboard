@@ -63,9 +63,9 @@ pip install -r req.txt
 uvicorn app:app --reload
 ```
 **4. View the Dashboard**
-```
+
 Open the index.html file in any modern web browser to interact with the visualizations.
-```
+
 
 **5. View the API Documentation**
 
